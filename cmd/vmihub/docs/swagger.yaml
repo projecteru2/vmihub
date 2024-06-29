@@ -1,0 +1,982 @@
+basePath: /api/v1
+definitions:
+  models.PrivateToken:
+    properties:
+      createdAt:
+        type: string
+      expiredAt:
+        type: string
+      id:
+        type: integer
+      lastUsed:
+        type: string
+      name:
+        type: string
+      token:
+        type: string
+      userId:
+        type: integer
+    type: object
+  pkg_types.OSInfo:
+    properties:
+      arch:
+        default: amd64
+        type: string
+      distrib:
+        default: ubuntu
+        type: string
+      type:
+        default: linux
+        type: string
+      version:
+        type: string
+    type: object
+  types.ChangeUserPwdRequest:
+    properties:
+      newPassword:
+        maxLength: 20
+        minLength: 3
+        type: string
+    required:
+    - newPassword
+    type: object
+  types.ImageCreateRequest:
+    properties:
+      description:
+        type: string
+      digest:
+        type: string
+      format:
+        type: string
+      labels:
+        additionalProperties:
+          type: string
+        type: object
+      name:
+        type: string
+      os:
+        $ref: '#/definitions/pkg_types.OSInfo'
+      private:
+        default: false
+        type: boolean
+      region_code:
+        default: ap-yichang-1
+        type: string
+      size:
+        type: integer
+      tag:
+        default: latest
+        type: string
+      url:
+        type: string
+      username:
+        type: string
+    type: object
+  types.ImageInfoResp:
+    properties:
+      createdAt:
+        example: 'format: RFC3339'
+        type: string
+      description:
+        type: string
+      digest:
+        type: string
+      format:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      os:
+        $ref: '#/definitions/pkg_types.OSInfo'
+      private:
+        type: boolean
+      repo_id:
+        type: integer
+      size:
+        type: integer
+      snapshot:
+        type: string
+      tag:
+        type: string
+      updatedAt:
+        example: 'format: RFC3339'
+        type: string
+      username:
+        type: string
+    type: object
+  types.JSONResult:
+    properties:
+      code:
+        type: integer
+      data: {}
+      msg:
+        type: string
+    type: object
+  types.LoginRequest:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  types.PrivateTokenDeleteRequest:
+    properties:
+      name:
+        maxLength: 20
+        minLength: 1
+        type: string
+    required:
+    - name
+    type: object
+  types.PrivateTokenRequest:
+    properties:
+      expiredAt:
+        example: 'RFC3339: 2023-11-30T14:30:00.123+08:00'
+        type: string
+      name:
+        example: my-token
+        maxLength: 20
+        minLength: 1
+        type: string
+    required:
+    - name
+    type: object
+  types.RefreshRequest:
+    properties:
+      accessToken:
+        type: string
+      refreshToken:
+        type: string
+    required:
+    - accessToken
+    - refreshToken
+    type: object
+  types.ResetUserPwdRequest:
+    properties:
+      code:
+        type: string
+      password:
+        maxLength: 20
+        minLength: 3
+        type: string
+      password1:
+        maxLength: 20
+        minLength: 3
+        type: string
+      phone:
+        type: string
+      smsId:
+        type: string
+    required:
+    - code
+    - password
+    - password1
+    - phone
+    - smsId
+    type: object
+  types.TokenResponse:
+    properties:
+      accessToken:
+        type: string
+      refreshToken:
+        type: string
+    type: object
+  types.UpdateUserRequest:
+    properties:
+      email:
+        type: string
+      nickname:
+        type: string
+    type: object
+  types.UserInfoResp:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      isAdmin:
+        type: boolean
+      nickname:
+        maxLength: 20
+        minLength: 1
+        type: string
+      type:
+        type: string
+      username:
+        maxLength: 20
+        minLength: 1
+        type: string
+    required:
+    - email
+    - nickname
+    - username
+    type: object
+info:
+  contact: {}
+  description: this is vmihub server.
+  title: vmihub project
+  version: "1.0"
+paths:
+  /image/:username/:name/startChunkUpload:
+    post:
+      consumes:
+      - application/json
+      description: UploadImageChunk upload image chunk
+      parameters:
+      - description: token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 用户名
+        in: path
+        name: username
+        required: true
+        type: string
+      - description: 镜像名
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: 强制上传（覆盖）
+        in: query
+        name: force
+        type: boolean
+      - description: chunk大小
+        in: query
+        name: chunkSize
+        required: true
+        type: integer
+      - description: chunk数量
+        in: query
+        name: nChunks
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: upload image chunk
+      tags:
+      - 镜像管理
+  /image/:username/:name/startUpload:
+    post:
+      consumes:
+      - application/json
+      description: StartUpload upload image file
+      parameters:
+      - description: token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 用户名
+        in: path
+        name: username
+        required: true
+        type: string
+      - description: 镜像名
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: 强制上传（覆盖）
+        in: query
+        name: force
+        type: boolean
+      - description: 镜像配置
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/types.ImageCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: upload image file
+      tags:
+      - 镜像管理
+  /image/{username}/{name}:
+    delete:
+      consumes:
+      - application/json
+      description: DeleteImage delete image
+      parameters:
+      - description: token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 仓库用户名
+        in: path
+        name: username
+        required: true
+        type: string
+      - description: 仓库名
+        in: path
+        name: name
+        required: true
+        type: string
+      - default: '"latest"'
+        description: 镜像标签
+        in: query
+        name: tag
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: delete image
+      tags:
+      - 镜像管理
+  /image/{username}/{name}/chunk/{chunkIdx}/download:
+    get:
+      consumes:
+      - application/json
+      description: DownloadImageChunk download image chunk
+      parameters:
+      - description: token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 仓库用户名
+        in: path
+        name: username
+        required: true
+        type: string
+      - description: 仓库名
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: 分片序号
+        in: path
+        name: chunkIdx
+        required: true
+        type: integer
+      - default: '"latest"'
+        description: 标签
+        in: query
+        name: tag
+        type: string
+      - default: '"50M"'
+        description: 分片大小
+        in: query
+        name: chunkSize
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: download image chunk
+      tags:
+      - 镜像管理
+  /image/{username}/{name}/download:
+    get:
+      consumes:
+      - application/json
+      description: DownloadImage download image
+      parameters:
+      - description: token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 仓库用户名
+        in: path
+        name: username
+        required: true
+        type: string
+      - description: 仓库名
+        in: path
+        name: name
+        required: true
+        type: string
+      - default: '"latest"'
+        description: 镜像标签
+        in: query
+        name: tag
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: download image
+      tags:
+      - 镜像管理
+  /image/{username}/{name}/info:
+    get:
+      consumes:
+      - application/json
+      description: GetImageInfo get image meta info
+      parameters:
+      - description: token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 仓库用户名
+        in: path
+        name: username
+        required: true
+        type: string
+      - description: 仓库名
+        in: path
+        name: name
+        required: true
+        type: string
+      - default: '"latest"'
+        description: 镜像标签
+        in: query
+        name: tag
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: get image meta info
+      tags:
+      - 镜像管理
+  /image/{username}/{name}/upload:
+    post:
+      consumes:
+      - application/json
+      description: UploadImage upload image
+      parameters:
+      - description: token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 仓库用户名
+        in: path
+        name: username
+        required: true
+        type: string
+      - description: 仓库名
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: 强制上传（覆盖）
+        in: query
+        name: force
+        type: boolean
+      - description: 文件
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: upload image
+      tags:
+      - 镜像管理
+  /image/chunk/{chunkIdx}/upload:
+    post:
+      consumes:
+      - application/json
+      description: UploadImageChunk upload image chunk
+      parameters:
+      - description: token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 分片序列
+        in: path
+        name: chunkIdx
+        required: true
+        type: string
+      - description: 上传uploadID
+        in: query
+        name: uploadID
+        required: true
+        type: string
+      - description: 文件
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: upload image chunk
+      tags:
+      - 镜像管理
+  /image/chunk/merge:
+    post:
+      consumes:
+      - application/json
+      description: MergeChunk merge chunk slice file
+      parameters:
+      - description: token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 上传uploadID
+        in: query
+        name: uploadID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: merge chunk slice file
+      tags:
+      - 镜像管理
+  /images:
+    get:
+      consumes:
+      - application/json
+      description: ListImages get images list
+      parameters:
+      - description: token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - default: ""
+        description: 搜索关键字
+        in: query
+        name: keyword
+        type: string
+      - description: 用户名
+        in: query
+        name: username
+        type: string
+      - default: 1
+        description: 页码
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: 每一页数量
+        in: query
+        name: pageSize
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: desc
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.JSONResult'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/types.ImageInfoResp'
+                  type: array
+              type: object
+      summary: get image list
+      tags:
+      - 镜像管理
+  /repositories:
+    get:
+      consumes:
+      - application/json
+      description: ListRepositories get repository list
+      parameters:
+      - description: token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 用户名
+        in: query
+        name: username
+        type: string
+      - default: 1
+        description: 页码
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: 每一页数量
+        in: query
+        name: pageSize
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: get repository list
+      tags:
+      - 镜像管理
+  /repository/{username}/{name}:
+    delete:
+      consumes:
+      - application/json
+      description: DeleteRepository
+      parameters:
+      - description: token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 用户名
+        in: path
+        name: username
+        required: true
+        type: string
+      - description: 仓库名
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: delete specified repository
+      tags:
+      - 镜像管理
+    get:
+      consumes:
+      - application/json
+      description: ListRepoImages get image list of specified repo
+      parameters:
+      - description: token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 用户名
+        in: path
+        name: username
+        required: true
+        type: string
+      - description: 仓库名
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: get image list of specified repository
+      tags:
+      - 镜像管理
+  /user/changePwd:
+    post:
+      consumes:
+      - application/json
+      description: ChangePwd register user
+      parameters:
+      - description: token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 修改密码
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/types.ChangeUserPwdRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: desc
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.JSONResult'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.UserInfoResp'
+              type: object
+      summary: change user password
+      tags:
+      - 用户管理
+  /user/info:
+    get:
+      consumes:
+      - application/json
+      description: GetUserInfo get user info
+      parameters:
+      - description: token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: desc
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.JSONResult'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.UserInfoResp'
+              type: object
+      summary: get user info
+      tags:
+      - 用户管理
+    post:
+      consumes:
+      - application/json
+      description: UpdateUser updatrs user information
+      parameters:
+      - description: token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 重置密码
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/types.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: desc
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.JSONResult'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.UserInfoResp'
+              type: object
+      summary: update user information
+      tags:
+      - 用户管理
+  /user/login:
+    post:
+      consumes:
+      - application/json
+      description: LoginUser login user
+      parameters:
+      - description: 用户结构体
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/types.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: desc
+          schema:
+            $ref: '#/definitions/types.JSONResult'
+      tags:
+      - 用户管理
+  /user/logout:
+    post:
+      consumes:
+      - application/json
+      description: LogoutUser logout user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: desc
+          schema:
+            $ref: '#/definitions/types.JSONResult'
+      tags:
+      - 用户管理
+  /user/privateToken:
+    delete:
+      consumes:
+      - application/json
+      description: DeletePrivateToken delete a private token for currrent user
+      parameters:
+      - description: token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 用户结构体
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/types.PrivateTokenDeleteRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: desc
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.JSONResult'
+            - properties:
+                msg:
+                  type: string
+              type: object
+      summary: delete private token
+      tags:
+      - 用户管理
+    post:
+      consumes:
+      - application/json
+      description: CreatePrivateToken create a private token for currrent user
+      parameters:
+      - description: token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 用户结构体
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/types.PrivateTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: desc
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.JSONResult'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.PrivateToken'
+              type: object
+      summary: create private token
+      tags:
+      - 用户管理
+  /user/privateTokens:
+    get:
+      consumes:
+      - application/json
+      description: ListPrivateToken list all private tokens of current user
+      parameters:
+      - description: token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: desc
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.JSONResult'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.PrivateToken'
+                  type: array
+              type: object
+      summary: list private token
+      tags:
+      - 用户管理
+  /user/refreshToken:
+    post:
+      consumes:
+      - application/json
+      description: RefreshToken refresh token
+      parameters:
+      - description: 刷新Token结构体
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/types.RefreshRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: desc
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.JSONResult'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.TokenResponse'
+              type: object
+      summary: refresh token
+      tags:
+      - 用户管理
+  /user/resetPwd:
+    post:
+      consumes:
+      - application/json
+      description: ResetPwd resrt user password
+      parameters:
+      - description: token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 重置密码
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/types.ResetUserPwdRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: desc
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.JSONResult'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.UserInfoResp'
+              type: object
+      summary: reset user password
+      tags:
+      - 用户管理
+  /user/token:
+    post:
+      consumes:
+      - application/json
+      description: GetUserToken get user token
+      parameters:
+      - description: 用户结构体
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/types.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: desc
+          schema:
+            allOf:
+            - $ref: '#/definitions/types.JSONResult'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.TokenResponse'
+              type: object
+      tags:
+      - 用户管理
+swagger: "2.0"

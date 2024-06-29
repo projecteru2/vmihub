@@ -1,0 +1,13 @@
+/bin
+cscope.*
+tmp/
+bk/
+vendor/
+dist/
+.idea/
+.DS_Store
+.air.toml
+config-dev.toml
+config-prod.toml
+/.vscode
+config/vmihub.toml

@@ -1,0 +1,7 @@
+DROP TABLE IF EXISTS repository;
+
+DROP TABLE IF EXISTS `image`;
+
+DROP TABLE IF EXISTS `user`;
+
+DROP TABLE IF EXISTS `private_token`;

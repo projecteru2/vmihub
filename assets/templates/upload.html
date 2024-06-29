@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://cdn.bootcdn.net/ajax/libs/spark-md5/3.0.0/spark-md5.min.js"></script>
+    <script src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+    <!--    <link rel="stylesheet" href="./style.css">-->
+</head>
+
+<body>
+<input type="file">
+
+
+</body>
+<script>
+    const TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJJRCI6MSwiVXNlck5hbWUiOiJhZG1pbiIsImV4cCI6MTY4OTE0NjI0NCwiaXNzIjoid2FuamllIiwibmJmIjoxNjg4OTczNDQ0fQ.Vl3U2UOLl7h7R3nGa-SCI8eiHdT1D5Ny4jnbTM9kWS4"
+    const IMGNAME = "test233"
+    const USERNAME = "admin"
+    const UploadID = "200c70a9d13d84ad4b2927f336609fd386ff8d3e538f90d577bd648b2a05ab21"
+    const TAG = "v1"
+    const SliceUpload = 1
+    document.querySelector('input').onchange = function (e) {
+        const file = this.files[0]
+        const fileName = file.name
+        const chunksize = 1024 * 1024 * 10;
+        // debugger
+        const sliceBuffer = []
+        let sliceSize = file.size
+        while (sliceSize > chunksize) {
+            const blobPart = file.slice(sliceBuffer.length * chunksize, (sliceBuffer.length + 1) * chunksize)
+            sliceBuffer.push(
+                blobPart
+            )
+            sliceSize -= chunksize
+        }
+
+        if (sliceSize > 0) {
+            sliceBuffer.push(
+                file.slice(sliceBuffer.length * chunksize, file.size)
+            )
+        }
+
+        const fileReader = new FileReader()
+        fileReader.onload = function (res) {
+            const result = fileReader.result
+            const fileHash = SparkMD5.hashBinary(result)
+
+            const chunkRequests = []
+            return new Promise(resolve => {
+                sliceBuffer.forEach((buffer, i) => {
+                    console.info("i====", i)
+                    const blob = new File([buffer], `${i}`)
+                    chunkRequests.push(
+                        uploadFileChunk(i, blob)
+                    )
+                })
+                resolve()
+                return Promise.all(chunkRequests)
+            }).then(res => {
+                    return new Promise(resolve => {
+                        setTimeout(function (){
+                            megerChunkFile(fileHash, file.name).then(res => {
+                                resolve(res)
+                            })
+                        }, 1500)
+                    })
+                }
+            ).then(res => {
+                console.log(res)
+            })
+
+
+
+
+
+            /*checkFileChunkState(fileHash, fileName)
+                .then(res => {
+                    let {chunkList, state} = res
+                    console.log("res:==", res, chunkList, state)
+                    if (state === 1) {
+                        alert("已经上传完成")
+                        return
+                    }
+
+                    chunkList = chunkList.map(e => parseInt(e))
+
+                    const chunkRequests = []
+                    console.log("222:===", sliceBuffer)
+                    console.log("chunkList:==", chunkList)
+                    sliceBuffer.forEach((buffer, i) => {
+                        console.info(i, chunkList.includes(i))
+                        if (!chunkList.includes(i)) {
+                            const blob = new File([buffer], `${i}`)
+                            chunkRequests.push(
+                                uploadFileChunk(fileHash, blob)
+                            )
+                        }
+                    })
+                    return Promise.all(chunkRequests)
+                })
+                .then(res => {
+                    return new Promise(resolve => {
+                        res.forEach(e => {
+                            e.json().then(({chunkList}) => {
+                                console.log("megerChunkFile222:==", chunkList.length, sliceBuffer.length)
+                                if (chunkList.length === sliceBuffer.length) {
+                                    megerChunkFile(fileHash, file.name).then(res => {
+                                        resolve(res)
+                                    })
+                                }
+                            })
+                        })
+                    })
+                }).then(res => {
+                console.log(res)
+            })
+            */
+
+        }
+        fileReader.onerror = function (err) {
+            console.log("报错了", err.target.error)
+        }
+        fileReader.readAsBinaryString(this.files[0])
+
+    }
+
+    function uploadFileChunk(chunkIdx, file) {
+        let formData = new FormData
+        console.log("file:==", file)
+        formData.append('file', file)
+        // formData.append('hash', hash)
+        let uploadUrl = `http://127.0.0.1:8080/api/v1/image/${USERNAME}/${IMGNAME}/chunk/${chunkIdx}/upload?tag=${TAG}&uploadId=${UploadID}`
+        //  http://127.0.0.1:8080/api/v1/image/upload?imgName=${IMGNAME}&tag=${TAG}&sliceUpload=${SliceUpload}
+        return fetch(uploadUrl, {
+            method: "POST",
+            headers: new Headers({
+                Authorization: TOKEN,
+            }),
+            body: formData
+        })
+    }
+
+    function checkFileChunkState(hash, filename) {
+        return new Promise(resolve => {
+            fetch(`http://127.0.0.1:8080/api/v1/image/check?imgName=${IMGNAME}&tag=${TAG}`, {
+                method: "GET",
+                headers: new Headers({
+                    Authorization: TOKEN,
+                }),
+            })
+                .then(r => r.json())
+                .then(response => {
+                    resolve(response)
+                })
+        })
+    }
+
+
+    function megerChunkFile(hash, fileName, totalSize) {
+        let reqUrl = `http://127.0.0.1:8080/api/v1/image/${USERNAME}/${IMGNAME}/chunk/merge?tag=${TAG}&uploadId=${UploadID}&total=${totalSize}`
+
+        return new Promise(resolve => {
+            fetch(reqUrl, {
+                method: "GET",
+                headers: new Headers({
+                    Authorization: TOKEN,
+                }),
+            })
+                .then(r => r.json())
+                .then(r => {
+                    resolve(r)
+                })
+        })
+    }
+</script>
+</html>

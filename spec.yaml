@@ -1,0 +1,54 @@
+appname: "vmihub"
+entrypoints:
+  main:
+    cmd: "/usr/local/bin/vmihub --config /etc/eru/vmihub.toml"
+    restart: always
+    publish:
+      - "8080"
+    healthcheck:
+      http_port: "8080"
+      url: "/healthz"
+      code: 200
+    privileged: true
+    # log:
+    #   type: "none"
+# volumes:
+#   - /sys:/sys:ro
+dns:
+  - 8.8.8.8
+
+stages:
+  - build
+  - pack
+builds:
+  build:
+    base: "golang:bookworm"
+    # only support ssh protocol
+    repo: "git@github.com:projecteru2/vmihub.git"
+    version: "HEAD"
+    dir: /go/src/github.com/projecteru2/vmihub
+    commands:
+      - sed -i 's/deb.debian.org/mirrors.ustc.edu.cn/g' /etc/apt/sources.list.d/debian.sources
+      - apt-get update
+      - apt-get install -y libcephfs-dev librbd-dev librados-dev
+      - make deps CN=1
+      - make build CN=1
+      - ./bin/vmihub --version
+    cache:
+      /go/src/github.com/projecteru2/vmihub/bin/vmihub: /usr/local/bin/vmihub
+  pack:
+    base: debian:bookworm
+    labels:
+      ERU: 1
+      version: latest
+      app: vmihub
+      app_entry: vmihub_main
+    # envs:
+    #   AGENT_IN_DOCKER: 1
+    commands:
+      - sed -i 's/deb.debian.org/mirrors.ustc.edu.cn/g' /etc/apt/sources.list.d/debian.sources
+      - apt-get update
+      - apt-get install -y ca-certificates libcephfs-dev librbd-dev librados-dev genisoimage qemu-utils
+      - update-ca-certificates
+      - mkdir -p /etc/eru/
+      - mkdir -p /etc/ceph

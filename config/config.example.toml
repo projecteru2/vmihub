@@ -1,0 +1,37 @@
+[server]
+run_mode = "test"     # valid values: debug, test, release.
+bind = ":8080"
+read_timeout = "60s"
+write_timeout = "60s"
+
+[log]
+level = "info"
+
+[mysql]
+dsn = "root:123456@tcp(127.0.0.1:3306)/vmihub?parseTime=true"
+max_open_connections = 100
+max_idle_connections = 10
+
+[storage]
+type = "local"
+
+[storage.local]
+base_dir = "/tmp/.image/"
+
+[storage.s3]
+endpoint = "http://127.0.0.1/"
+access_key = "abcd"
+secret_key = "abcd"
+bucket = "eru-images"
+base_dir = "/tmp/.image/"
+
+[jwt]
+key = "7$!UEmVB#nKB@Iwab#SH!zofbEOGLRtE"
+
+[redis]
+addr = "127.0.0.1:6379"
+sentinel_addrs = []
+master_name = "mymaster"
+username = ""
+password = ""
+expire = 604800

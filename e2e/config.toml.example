@@ -1,0 +1,4 @@
+username = "xxx"
+password = "xxx"
+url = "http://10.200.0.185:8080"
+base_dir = "/tmp/e2e-image"
