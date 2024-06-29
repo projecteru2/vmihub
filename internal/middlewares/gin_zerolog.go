@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -79,7 +80,7 @@ func logSwitch(data *ginHands) {
 			Str("client_ip", data.ClientIP).
 			Msg(data.MsgStr)
 
-	case data.StatusCode >= 500: //nolint
+	case data.StatusCode >= http.StatusInternalServerError:
 		log.GetGlobalLogger().Error().
 			Str("ser_name", data.SerName).
 			Str("method", data.Method).
