@@ -1,7 +1,8 @@
 package factory
 
 import (
-	"github.com/cockroachdb/errors"
+	"fmt"
+
 	"github.com/projecteru2/vmihub/config"
 	"github.com/projecteru2/vmihub/internal/storage"
 	"github.com/projecteru2/vmihub/internal/storage/local"
@@ -24,7 +25,7 @@ func Init(cfg *config.StorageConfig) (storage.Storage, error) {
 		case "mock":
 			stor = &mocks.Storage{}
 		default:
-			err = errors.Newf("unknown storage type %s", cfg.Type)
+			err = fmt.Errorf("unknown storage type %s", cfg.Type)
 		}
 	}
 	return stor, err

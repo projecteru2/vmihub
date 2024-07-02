@@ -30,8 +30,8 @@ builds:
     commands:
       - apt-get update
       - apt-get install -y libcephfs-dev librbd-dev librados-dev
-      - make deps CN=1
-      - make build CN=1
+      - make deps
+      - make build
       - ./bin/vmihub --version
     cache:
       /go/src/github.com/projecteru2/vmihub/bin/vmihub: /usr/local/bin/vmihub

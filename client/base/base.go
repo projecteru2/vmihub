@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/cockroachdb/errors"
 	"github.com/projecteru2/vmihub/client/terrors"
 	"github.com/projecteru2/vmihub/client/types"
 )
@@ -105,7 +104,7 @@ func (i *APIImpl) HTTPDelete(ctx context.Context, reqURL string, urlQueryValues 
 
 func GetCommonRawResponse(resp *http.Response) (resRaw map[string]any, err error) {
 	if resp.StatusCode != http.StatusOK {
-		err = errors.Wrapf(terrors.ErrHTTPError, "status: %d, error: %v", resp.StatusCode, resRaw["error"])
+		err = fmt.Errorf("status: %d, error: %v, %w", resp.StatusCode, resRaw["error"], terrors.ErrHTTPError)
 		return
 	}
 	bs, err := io.ReadAll(resp.Body)
@@ -115,7 +114,7 @@ func GetCommonRawResponse(resp *http.Response) (resRaw map[string]any, err error
 	resRaw = map[string]any{}
 	err = json.Unmarshal(bs, &resRaw)
 	if err != nil {
-		err = errors.Wrapf(err, "failed to decode response: %s", string(bs))
+		err = fmt.Errorf("failed to decode response: %s, %w", string(bs), err)
 		return
 	}
 	return

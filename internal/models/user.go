@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cockroachdb/errors"
 	"github.com/jmoiron/sqlx"
 	"github.com/projecteru2/vmihub/internal/utils"
 	"github.com/projecteru2/vmihub/pkg/terrors"
@@ -71,7 +70,7 @@ func (t *PrivateToken) Save(tx *sqlx.Tx) (err error) {
 	sqlRes, err := tx.Exec(sqlStr, t.UserID, t.Name, t.Token, t.ExpiredAt)
 	if err != nil {
 		_ = tx.Rollback()
-		return errors.Wrapf(err, "failed to insert private token: %v", t)
+		return fmt.Errorf("%w failed to insert private token: %v", err, t)
 	}
 	// fetch guest id
 	t.ID, _ = sqlRes.LastInsertId()
@@ -90,7 +89,7 @@ func (t *PrivateToken) Delete(tx *sqlx.Tx) (err error) {
 	sqlStr := "DELETE FROM private_token WHERE id = ?"
 	if _, err = tx.Exec(sqlStr, t.ID); err != nil {
 		_ = tx.Rollback()
-		return errors.Wrapf(err, "failed to delete private token: %v", t)
+		return fmt.Errorf("%w failed to delete private token: %v", err, t)
 	}
 	return
 }
@@ -126,7 +125,7 @@ func (user *User) Update(tx *sqlx.Tx) (err error) {
 	sqlStr := "UPDATE user SET nickname = ?, email = ? WHERE id = ?"
 	if _, err = tx.Exec(sqlStr, user.Nickname, user.Email, user.ID); err != nil {
 		_ = tx.Rollback()
-		return errors.Wrapf(err, "failed to update user: %v", user)
+		return fmt.Errorf("%w failed to update user: %v", err, user)
 	}
 	return
 }

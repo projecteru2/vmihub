@@ -37,11 +37,11 @@ func (cfg *Config) PrepareCephConfig() error {
 func (cfg *Config) writeCephConfig() (err error) {
 	fname := "/etc/ceph/ceph.conf"
 	if _, err := os.Stat(fname); !errors.Is(err, os.ErrNotExist) {
-		return nil
+		return err
 	}
 	if cephConfigTpl == nil {
 		if cephConfigTpl, err = template.New("ceph_config").Parse(cephConfigStr); err != nil {
-			return
+			return err
 		}
 	}
 	var monHosts []string //nolint
@@ -64,7 +64,7 @@ func (cfg *Config) writeCephConfig() (err error) {
 func (cfg *Config) writeCephKeyring() (err error) {
 	fname := "/etc/ceph/ceph.client.eru.keyring"
 	if _, err := os.Stat(fname); !errors.Is(err, os.ErrNotExist) {
-		return nil
+		return err
 	}
 	if cephKeyringTpl == nil {
 		if cephKeyringTpl, err = template.New("ceph_keyring").Parse(cephKeyringStr); err != nil {
@@ -85,7 +85,7 @@ func (cfg *Config) writeCephKeyring() (err error) {
 func (cfg *Config) writeRBDMap() error {
 	fname := "/etc/ceph/rbdmap"
 	if _, err := os.Stat(fname); !errors.Is(err, os.ErrNotExist) {
-		return nil
+		return err
 	}
 	return os.WriteFile(fname, []byte(rbdMapTplStr), 0644) //nolint
 }

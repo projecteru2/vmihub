@@ -2,12 +2,12 @@ package common
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/cockroachdb/errors"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/projecteru2/core/log"
@@ -44,7 +44,7 @@ func AuthWithSession(c *gin.Context) (err error) {
 		}
 	}
 	if user == nil {
-		return errors.Newf("can't find user %d", userID)
+		return fmt.Errorf("can't find user %d", userID)
 	}
 	log.WithFunc("authWithSession").Debugf(c, "authenticate with session successfully %s", user.Username)
 

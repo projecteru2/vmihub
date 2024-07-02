@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/cockroachdb/errors"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/projecteru2/core/log"
@@ -36,7 +35,7 @@ func Prepare(ctx context.Context, t *testing.T) error {
 		MaxBackups: cfg.Log.MaxBackups,
 	}
 	if err := log.SetupLog(ctx, logCfg, cfg.Log.SentryDSN); err != nil {
-		return errors.Newf("Can't initialize log: %v\n", err)
+		return fmt.Errorf("Can't initialize log: %w", err)
 	}
 	if err := models.Init(&cfg.Mysql, t); err != nil {
 		return err

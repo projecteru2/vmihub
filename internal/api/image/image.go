@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -21,7 +22,6 @@ import (
 	"github.com/projecteru2/vmihub/pkg/terrors"
 	"github.com/projecteru2/vmihub/pkg/types"
 
-	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/mcuadros/go-defaults"
@@ -461,7 +461,7 @@ func UploadImage(c *gin.Context) {
 			// force, err = strconv.ParseBool(v)
 			_, err = strconv.ParseBool(v)
 		default:
-			err = errors.Newf("unknown redis hash key %s", k)
+			err = fmt.Errorf("unknown redis hash key %s", k)
 		}
 		if err != nil {
 			logger.Errorf(c, err, "incorrect redis value: %s %s", k, v)
@@ -751,7 +751,7 @@ func processRemoteImageFile(c *gin.Context, img *models.Image, url string) error
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "failed to download url"})
-		return errors.Newf("failed to get remote file, http code: %s", resp.StatusCode)
+		return fmt.Errorf("failed to get remote file, http code: %v", resp.StatusCode)
 	}
 	fp, err := os.CreateTemp("/tmp", "download-remote-")
 	if err != nil {
@@ -829,7 +829,7 @@ func writeSingleFileWithChunk(c *gin.Context, img *models.Image, fname string, s
 		chunkIdx := i.(int64) //nolint
 		fp, err := os.Open(fname)
 		if err != nil {
-			errList[chunkIdx] = errors.Wrapf(err, "failed to open file %s", fname)
+			errList[chunkIdx] = fmt.Errorf("%w failed to open file %s", err, fname)
 			hasErr.Store(true)
 			return
 		}
@@ -850,7 +850,7 @@ func writeSingleFileWithChunk(c *gin.Context, img *models.Image, fname string, s
 		}
 		chunkList[chunkIdx] = cInfo
 		if err = sto.ChunkWrite(c, img.Fullname(), uploadID, cInfo); err != nil {
-			errList[chunkIdx] = errors.Wrapf(err, "failed to write chunk %d", chunkIdx)
+			errList[chunkIdx] = fmt.Errorf("%w failed to write chunk %d", err, chunkIdx)
 			logger.Errorf(c, errList[chunkIdx], "failed to write chunk %d", chunkIdx)
 			hasErr.Store(true)
 			return
@@ -871,7 +871,7 @@ func writeSingleFileWithChunk(c *gin.Context, img *models.Image, fname string, s
 	if hasErr.Load() {
 		var outErr error
 		for idx := range errList {
-			outErr = errors.CombineErrors(outErr, errList[idx])
+			outErr = errors.Join(outErr, errList[idx])
 		}
 		logger.Error(c, outErr, "Failed to save file to storage [ChunkWrite]")
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{

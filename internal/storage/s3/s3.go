@@ -17,7 +17,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	s3svc "github.com/aws/aws-sdk-go/service/s3"
-	"github.com/cockroachdb/errors"
 	"github.com/johannesboyne/gofakes3"
 	"github.com/johannesboyne/gofakes3/backend/s3mem"
 	"github.com/mitchellh/mapstructure"
@@ -158,7 +157,7 @@ func (s *Store) PutWithChunk(ctx context.Context, name string, digest string, si
 			s.s3Client.AbortMultipartUploadRequest(&s3svc.AbortMultipartUploadInput{
 				UploadId: aws.String(uploadID),
 			})
-			return errors.Wrapf(err, "upload part %d", partNum)
+			return fmt.Errorf("%w upload part %d", err, partNum)
 		}
 		cp := &s3svc.CompletedPart{
 			PartNumber: aws.Int64(int64(partNum)),

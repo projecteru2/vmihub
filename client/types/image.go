@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/cockroachdb/errors"
 	"github.com/projecteru2/vmihub/client/util"
 	svctypes "github.com/projecteru2/vmihub/pkg/types"
 	svcutils "github.com/projecteru2/vmihub/pkg/utils"
@@ -31,13 +30,13 @@ type MetadataDB struct {
 func NewMetadataDB(baseDir, bucket string) (*MetadataDB, error) {
 	db, err := bolt.Open(filepath.Join(baseDir, "metadata.db"), 0600, &bolt.Options{Timeout: 5 * time.Second})
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to open db")
+		return nil, fmt.Errorf("failed to open db: %w", err)
 	}
 	if err := db.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte(bucket))
 		return err
 	}); err != nil {
-		return nil, errors.Wrapf(err, "failed to create bucket for image")
+		return nil, fmt.Errorf("failed to create bucket: %w", err)
 	}
 	return &MetadataDB{
 		baseDir: baseDir,
@@ -164,7 +163,7 @@ func (mdb *MetadataDB) update(img *Image, oldEmpty bool) (meta *Metadata, err er
 	err = mdb.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(mdb.bucket))
 		if oldEmpty && b.Get([]byte(fullname)) != nil {
-			return errors.Newf("canflict when load metadata of image %s", fullname)
+			return fmt.Errorf("canflict when load metadata of image %s", fullname)
 		}
 		return b.Put([]byte(fullname), bs)
 	})

@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
-
-	"github.com/cockroachdb/errors"
 )
 
 type shx struct{}
@@ -46,20 +44,20 @@ func (s shx) Exec(ctx context.Context, name string, args ...string) error {
 
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
-		return errors.Wrap(err, "")
+		return err
 	}
 
 	if err := cmd.Start(); err != nil {
-		return errors.Wrap(err, "")
+		return err
 	}
 
 	slurp, err := io.ReadAll(stderr)
 	if err != nil {
-		return errors.Wrap(err, "")
+		return err
 	}
 
 	if err := cmd.Wait(); err != nil {
-		return errors.Wrap(err, string(slurp))
+		return fmt.Errorf("%w %s", err, string(slurp))
 	}
 
 	return nil

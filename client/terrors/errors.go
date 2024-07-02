@@ -1,6 +1,6 @@
 package terrors
 
-import "github.com/cockroachdb/errors"
+import "errors"
 
 var (
 	ErrInvalidImageName = errors.New("invalid image name")

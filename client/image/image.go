@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -17,7 +18,6 @@ import (
 	"strings"
 
 	"github.com/cenkalti/backoff/v4"
-	"github.com/cockroachdb/errors"
 	"github.com/dustin/go-humanize"
 	"github.com/panjf2000/ants/v2"
 
@@ -62,13 +62,12 @@ func NewAPI(addr string, baseDir string, cred *types.Credential, options ...Opti
 	if err != nil {
 		return nil, err
 	}
-	err = util.EnsureDir(filepath.Join(baseDir, "image"))
-	if err != nil {
-		return nil, errors.Wrapf(terrors.ErrFSError, "failed to create dir: %s", err)
+	if err := util.EnsureDir(filepath.Join(baseDir, "image")); err != nil {
+		return nil, fmt.Errorf("failed to create dir %w: %w", err, terrors.ErrFSError)
 	}
 	mdb, err := types.NewMetadataDB(baseDir, "images")
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to open db")
+		return nil, fmt.Errorf("failed to open db: %w", err)
 	}
 	img := &APIImpl{
 		APIImpl:   *base.NewAPI(addr, cred),
@@ -118,11 +117,11 @@ func (i *APIImpl) ListImages(ctx context.Context, username string, pageN, pageSi
 	resRaw := map[string]any{}
 	err = json.Unmarshal(bs, &resRaw)
 	if err != nil {
-		err = errors.Wrapf(err, "failed to decode response: %s", string(bs))
+		err = fmt.Errorf("failed to decode response: %w %s", err, string(bs))
 		return
 	}
 	if resp.StatusCode != http.StatusOK {
-		err = errors.Wrapf(terrors.ErrHTTPError, "status: %d, error: %v", resp.StatusCode, resRaw["error"])
+		err = fmt.Errorf("status: %d, error: %v, %w", resp.StatusCode, resRaw["error"], terrors.ErrHTTPError)
 		return
 	}
 
@@ -249,7 +248,7 @@ func (i *APIImpl) startUpload(ctx context.Context, img *types.Image, force bool)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to execute http request")
+		return "", fmt.Errorf("failed to execute http request: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -271,7 +270,7 @@ func (i *APIImpl) upload(ctx context.Context, img *types.Image, uploadID string)
 	filePath := img.Filepath()
 	fp, err := os.Open(filePath)
 	if err != nil {
-		return errors.Wrapf(err, "failed to open %s", filePath)
+		return fmt.Errorf("failed to open %s: %w", filePath, err)
 	}
 	defer fp.Close()
 
@@ -284,11 +283,11 @@ func (i *APIImpl) upload(ctx context.Context, img *types.Image, uploadID string)
 
 		part, err := m.CreateFormFile("file", filepath.Base(filePath))
 		if err != nil {
-			errCh <- errors.Wrap(err, "failed to create form field")
+			errCh <- fmt.Errorf("failed to create form file: %w", err)
 			return
 		}
 		if _, err = io.Copy(part, fp); err != nil {
-			errCh <- errors.Wrap(err, "failed copy content from file to part")
+			errCh <- fmt.Errorf("failed to copy file: %w", err)
 			return
 		}
 	}()
@@ -300,7 +299,7 @@ func (i *APIImpl) upload(ctx context.Context, img *types.Image, uploadID string)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), r)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create http request")
+		return fmt.Errorf("failed to create http request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", m.FormDataContentType())
@@ -308,7 +307,7 @@ func (i *APIImpl) upload(ctx context.Context, img *types.Image, uploadID string)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return errors.Wrap(err, "failed to execute http request")
+		return fmt.Errorf("failed to execute http request: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -319,9 +318,9 @@ func (i *APIImpl) upload(ctx context.Context, img *types.Image, uploadID string)
 		default:
 		}
 		if err != nil {
-			return errors.Wrapf(err, "failed to push: %s, %s", resp.Status, string(bs))
+			return fmt.Errorf("failed to push: %s, %s: %w", resp.Status, string(bs), err)
 		} else { //nolint:revive
-			return errors.Newf("failed to push: %s, %s", resp.Status, string(bs))
+			return fmt.Errorf("failed to push: %s, %s", resp.Status, string(bs))
 		}
 	}
 	return nil
@@ -391,7 +390,7 @@ func (i *APIImpl) GetInfo(ctx context.Context, imgFullname string) (info *types.
 	case http.StatusNotFound:
 		return nil, terrors.ErrImageNotFound
 	default:
-		return nil, errors.Wrapf(terrors.ErrHTTPError, "status: %d", resp.StatusCode)
+		return nil, fmt.Errorf("status: %d: %w", resp.StatusCode, terrors.ErrHTTPError)
 	}
 	bs, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -404,7 +403,7 @@ func (i *APIImpl) GetInfo(ctx context.Context, imgFullname string) (info *types.
 	}
 	dataObj, ok := resRaw["data"]
 	if !ok {
-		return nil, errors.Wrapf(terrors.ErrHTTPError, "response json object needs contain data field: %s", string(bs))
+		return nil, fmt.Errorf("response json object needs contain data field: %s: %w", string(bs), terrors.ErrHTTPError)
 	}
 	info = &types.Image{
 		BaseDir: i.baseDir,
@@ -453,7 +452,7 @@ func (i *APIImpl) Pull(ctx context.Context, imgName string, policy PullPolicy) (
 	}
 
 	if img.Format == "rbd" {
-		return nil, errors.Newf("image in rbd format is not alllowed to download")
+		return nil, fmt.Errorf("image in rbd format is not alllowed to download")
 	}
 	if cached, _ := img.Cached(); cached {
 		return img, nil
@@ -550,7 +549,7 @@ func (i *APIImpl) downloadWithChunk(ctx context.Context, img *types.Image) (err 
 	for res := range resCh {
 		finished++
 		if res.err != nil {
-			downloadErr = errors.CombineErrors(downloadErr, res.err)
+			downloadErr = errors.Join(downloadErr, res.err)
 		}
 		if finished >= int(nChunks) {
 			break
@@ -595,7 +594,7 @@ func (i *APIImpl) download(ctx context.Context, img *types.Image) (err error) {
 
 	if resp.StatusCode != http.StatusOK {
 		bs, _ := io.ReadAll(resp.Body)
-		return errors.Newf("failed to pull image, status code: %d, body: %s", resp.StatusCode, string(bs))
+		return fmt.Errorf("failed to pull image, status code: %d, body: %s", resp.StatusCode, string(bs))
 	}
 	return i.mdb.CopyFile(img, resp.Body)
 }

@@ -10,7 +10,6 @@ import (
 
 	"github.com/duke-git/lancet/strutil"
 	"github.com/jmoiron/sqlx"
-	"github.com/pkg/errors"
 	"github.com/projecteru2/vmihub/internal/utils"
 	"github.com/projecteru2/vmihub/pkg/types"
 	pkgutils "github.com/projecteru2/vmihub/pkg/utils"
@@ -168,13 +167,13 @@ func (repo *Repository) Delete(tx *sqlx.Tx) (err error) {
 
 	if _, err := tx.Exec(sqlStr, repo.ID); err != nil {
 		_ = tx.Rollback()
-		return errors.Wrapf(err, "falid to delete images")
+		return fmt.Errorf("falid to delete images %w", err)
 	}
 	sqlStr = "DELETE FROM repository WHERE id = ?"
 	_, err = tx.Exec(sqlStr, repo.ID)
 	if err != nil {
 		tx.Rollback() //nolint:errcheck
-		return errors.Wrapf(err, "falid to delete image")
+		return fmt.Errorf("falid to delete image %w", err)
 	}
 	return nil
 }
@@ -198,7 +197,7 @@ func (repo *Repository) DeleteImage(tx *sqlx.Tx, tag string) (err error) {
 
 	if _, err := tx.Exec(sqlStr, repo.ID, tag); err != nil {
 		_ = tx.Rollback()
-		return errors.Wrapf(err, "falid to delete image")
+		return fmt.Errorf("falid to delete image %w", err)
 	}
 	return nil
 }
@@ -224,14 +223,14 @@ func (repo *Repository) Save(tx *sqlx.Tx) (err error) {
 		_, err = tx.Exec(sqlStr, repo.Private, repo.Username, repo.Name)
 		if err != nil {
 			_ = tx.Rollback()
-			return errors.Wrapf(err, "failed to update repository: %v", repo)
+			return fmt.Errorf("failed to update repository: %v %w", repo, err)
 		}
 	} else {
 		sqlStr := "INSERT INTO repository(username, name, private) VALUES(?, ?, ?)"
 		sqlRes, err = tx.Exec(sqlStr, repo.Username, repo.Name, repo.Private)
 		if err != nil {
 			_ = tx.Rollback()
-			return errors.Wrapf(err, "failed to insert repository: %v", repo)
+			return fmt.Errorf("failed to insert repository: %v %w", repo, err)
 		}
 		// fetch image id
 		repo.ID, err = sqlRes.LastInsertId()
@@ -268,20 +267,20 @@ func (repo *Repository) SaveImage(tx *sqlx.Tx, img *Image) (err error) {
 		_, err = tx.Exec(sqlStr, img.Digest, img.Size, img.Snapshot, img.ID)
 		if err != nil {
 			_ = tx.Rollback()
-			return errors.Wrapf(err, "failed to update image: %v", img)
+			return fmt.Errorf("failed to update image: %v %w", img, err)
 		}
 	} else {
 		osVal, err := img.OS.Value()
 		if err != nil {
 			_ = tx.Rollback()
-			return errors.Wrapf(err, "failed to insert image: %v", img)
+			return fmt.Errorf("failed to insert image: %v %w", img, err)
 		}
 		sqlStr := "INSERT INTO image(repo_id, tag, labels, size, format, os, digest, snapshot, description) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)"
 		img.RepoID = repo.ID
 		sqlRes, err = tx.Exec(sqlStr, img.RepoID, img.Tag, labels, img.Size, img.Format, osVal, img.Digest, img.Snapshot, img.Description)
 		if err != nil {
 			_ = tx.Rollback()
-			return errors.Wrapf(err, "failed to insert image: %v", img)
+			return fmt.Errorf("failed to insert image: %v %w", img, err)
 		}
 		img.ID, err = sqlRes.LastInsertId()
 		if err != nil { //nolint

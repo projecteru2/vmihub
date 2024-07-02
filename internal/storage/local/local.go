@@ -2,11 +2,12 @@ package local
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 
-	"github.com/cockroachdb/errors"
 	"github.com/google/uuid"
 	stotypes "github.com/projecteru2/vmihub/internal/storage/types"
 	"github.com/projecteru2/vmihub/internal/utils"
@@ -54,7 +55,7 @@ func (s *Store) Delete(_ context.Context, name string, ignoreNotExists bool) err
 func (s *Store) Put(_ context.Context, name string, digest string, in io.ReadSeeker) error { //nolint:nolintlint    //nolint
 	fullName := filepath.Join(s.BaseDir, name)
 	if err := utils.EnsureDir(filepath.Dir(fullName)); err != nil {
-		return errors.Wrapf(err, "failed to create dir")
+		return fmt.Errorf("failed to create dir %w", err)
 	}
 
 	if err := utils.Invoke(func() error {
@@ -108,7 +109,7 @@ func (s *Store) ChunkWrite(_ context.Context, name string, _ string, info *stoty
 	offset := int64(info.Idx) * info.ChunkSize
 	filename := filepath.Join(s.BaseDir, name)
 	if err := utils.EnsureDir(filepath.Dir(filename)); err != nil {
-		return errors.Wrapf(err, "failed to create dir")
+		return fmt.Errorf("failed to create dir %w", err)
 	}
 
 	f, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE, 0766)
@@ -117,7 +118,7 @@ func (s *Store) ChunkWrite(_ context.Context, name string, _ string, info *stoty
 	}
 	defer f.Close()
 	if _, err = f.Seek(offset, 0); err != nil {
-		return errors.Wrapf(err, "failed to seek file")
+		return fmt.Errorf("failed to seek %w", err)
 	}
 	_, err = io.Copy(f, in)
 	return err
@@ -132,14 +133,14 @@ func (s *Store) Copy(_ context.Context, src, dest string) error {
 	srcName := filepath.Join(s.BaseDir, src)
 	srcF, err := os.OpenFile(srcName, os.O_RDONLY, 0766)
 	if err != nil {
-		return errors.Wrapf(err, "failed to open %s", srcName)
+		return fmt.Errorf("failed to open %s: %w", srcName, err)
 	}
 	destF, err := os.OpenFile(destName, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0766)
 	if err := utils.EnsureDir(filepath.Dir(destName)); err != nil {
-		return errors.Wrapf(err, "failed to create dir for %s", destName)
+		return fmt.Errorf("failed to create dir for %s: %w", destName, err)
 	}
 	if err != nil {
-		return errors.Wrapf(err, "failed to open %s", destName)
+		return fmt.Errorf("failed to open %s: %w", destName, err)
 	}
 	_, err = io.Copy(destF, srcF)
 	return err

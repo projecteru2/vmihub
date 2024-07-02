@@ -14,7 +14,6 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/cockroachdb/errors"
 	"github.com/dustin/go-humanize"
 	"github.com/projecteru2/vmihub/client/terrors"
 	"github.com/projecteru2/vmihub/client/types"
@@ -142,7 +141,7 @@ func (i *APIImpl) DownloadImageChunk(ctx context.Context, chunk *types.ChunkSlic
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return errors.Wrapf(terrors.ErrNetworkError, "status: %s", resp.StatusCode)
+		return fmt.Errorf("status: %v, %w", resp.StatusCode, terrors.ErrNetworkError)
 	}
 
 	chunkSliceFile := chunk.SliceFileIndexPath(int(cIdx))
@@ -152,7 +151,7 @@ func (i *APIImpl) DownloadImageChunk(ctx context.Context, chunk *types.ChunkSlic
 
 	out, err := os.OpenFile(chunkSliceFile, os.O_WRONLY|os.O_CREATE, 0766)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create %s", chunkSliceFile)
+		return fmt.Errorf("failed to create %s, %w", chunkSliceFile, err)
 	}
 	defer out.Close()
 
@@ -172,14 +171,14 @@ func (i *APIImpl) UploadImageChunk(ctx context.Context, chunk *types.ChunkSlice,
 	filePath := chunk.Filepath()
 	fp, err := os.Open(filePath)
 	if err != nil {
-		return errors.Wrapf(err, "failed to open %s", filePath)
+		return fmt.Errorf("failed to open %s, %w", filePath, err)
 	}
 	defer fp.Close()
 	// get slice part
 	offset := cIdx * chunk.ChunkSize
 	_, err = fp.Seek(offset, 0)
 	if err != nil {
-		return errors.Wrapf(err, "failed to seek to %d", offset)
+		return fmt.Errorf("failed to seek to %d, %w", offset, err)
 	}
 	reader := io.LimitReader(fp, chunk.ChunkSize)
 
@@ -188,11 +187,11 @@ func (i *APIImpl) UploadImageChunk(ctx context.Context, chunk *types.ChunkSlice,
 
 	part, err := writer.CreateFormFile("file", filepath.Base(filePath))
 	if err != nil {
-		return errors.Wrapf(err, "failed to create form field")
+		return fmt.Errorf("failed to create form field, %w", err)
 	}
 
 	if _, err := io.Copy(part, reader); err != nil {
-		return errors.Wrapf(err, "failed to copy")
+		return fmt.Errorf("failed to copy file content, %w", err)
 	}
 	_ = writer.Close()
 
@@ -228,7 +227,7 @@ func mergeSliceFile(chunk *types.ChunkSlice, nChunks int) error {
 	chunkSliceFile := chunk.SliceFilePath()
 	dest, err := os.OpenFile(chunk.SliceFilePath(), os.O_WRONLY|os.O_CREATE, 0766)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create %s", chunkSliceFile)
+		return fmt.Errorf("failed to create %s, %w", chunkSliceFile, err)
 	}
 	defer dest.Close()
 

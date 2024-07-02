@@ -2,13 +2,13 @@ package image
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
 
-	"github.com/cockroachdb/errors"
 	"github.com/dustin/go-humanize"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -206,7 +206,7 @@ func convImageListResp(repos []models.Repository, imgs []models.Image) ([]*types
 			repo = img.Repo
 		}
 		if repo == nil {
-			return nil, errors.Newf("not repo found for image %v", img)
+			return nil, fmt.Errorf("not repo found for image %v", img)
 		}
 		img.Repo = repo
 		resp := convImageInfoResp(img)
