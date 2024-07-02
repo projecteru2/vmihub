@@ -3,7 +3,7 @@ package types
 import (
 	"time"
 
-	"github.com/cockroachdb/errors"
+	"github.com/projecteru2/vmihub/pkg/terrors"
 )
 
 // RegisterRequest 定义用户登录结构体
@@ -36,7 +36,7 @@ type ResetUserPwdRequest struct {
 
 func (req *ResetUserPwdRequest) Check() error {
 	if req.Password != req.Password1 {
-		return errors.New("password not match")
+		return terrors.ErrInvalidUserPass
 	}
 	return nil
 }
@@ -49,10 +49,10 @@ type LoginRequest struct {
 
 func (req *LoginRequest) Check() error {
 	if req.Password == "" {
-		return errors.New("password should not both be empty")
+		return terrors.ErrInvalidPassword
 	}
 	if req.Username == "" {
-		return errors.New("username should not be empty")
+		return terrors.ErrInvalidUserName
 	}
 	return nil
 }

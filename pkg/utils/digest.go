@@ -8,7 +8,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/projecteru2/vmihub/client/terrors"
 )
 
@@ -29,11 +28,9 @@ func CalcDigestOfFile(fname string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
 	defer f.Close()
 
 	h := sha256.New()
-
 	if _, err = io.Copy(h, f); err != nil {
 		return "", err
 	}
@@ -95,7 +92,7 @@ func ParseImageName(imgName string) (user, name, tag string, err error) {
 		user = "_"
 	}
 	if strings.Contains(tag, ":") {
-		err = errors.Wrapf(terrors.ErrInvalidImageName, "invlaid tag %s", tag)
+		err = fmt.Errorf("%w invalid tag %s", terrors.ErrInvalidImageName, tag)
 	}
 	return
 }

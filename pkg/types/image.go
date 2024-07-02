@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
+	"github.com/projecteru2/vmihub/pkg/terrors"
 )
 
 type JSONResult struct {
@@ -48,20 +48,20 @@ type ImageCreateRequest struct {
 
 func (req *ImageCreateRequest) Check() error {
 	if req.URL == "" && len(req.Digest) != 64 {
-		return errors.New("invalid digest, only accept sha256")
+		return terrors.ErrInvalidSha1
 	}
 	if req.OS.Type == "" {
-		return errors.New("os type is empty")
+		return terrors.ErrInvalidOS
 	}
 	req.OS.Type = strings.ToLower(req.OS.Type)
 	if req.OS.Type == "linux" && req.OS.Distrib == "" {
-		return errors.New("os distrib is empty")
+		return terrors.ErrInvalidOS
 	}
 	if req.OS.Arch == "" {
-		return errors.New("os arch is empty")
+		return terrors.ErrInvalidArch
 	}
 	if req.Format == "" {
-		return errors.New("format is empty")
+		return terrors.ErrInvalidFormat
 	}
 	return nil
 }

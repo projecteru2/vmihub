@@ -28,7 +28,6 @@ builds:
     version: "HEAD"
     dir: /go/src/github.com/projecteru2/vmihub
     commands:
-      - sed -i 's/deb.debian.org/mirrors.ustc.edu.cn/g' /etc/apt/sources.list.d/debian.sources
       - apt-get update
       - apt-get install -y libcephfs-dev librbd-dev librados-dev
       - make deps CN=1
@@ -43,10 +42,7 @@ builds:
       version: latest
       app: vmihub
       app_entry: vmihub_main
-    # envs:
-    #   AGENT_IN_DOCKER: 1
     commands:
-      - sed -i 's/deb.debian.org/mirrors.ustc.edu.cn/g' /etc/apt/sources.list.d/debian.sources
       - apt-get update
       - apt-get install -y ca-certificates libcephfs-dev librbd-dev librados-dev genisoimage qemu-utils
       - update-ca-certificates
